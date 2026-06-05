@@ -7,24 +7,16 @@ Think rigorously about user impact, risk, and edge cases before writing test cas
 
 ## Task
 
-Create a detailed test plan for the **[FEATURE NAME]** feature.
+Create a detailed test plan for the TODO MVC application.
 
-## Context
-
-- **Jira ticket:** [KEY-123 / link]
-- **Surface area:** [web UI / mobile / API / backend job / etc.]
-- **Roles / permissions:** [e.g., admin, end user, guest]
-- **Environments:** [browsers, devices, locales, OS versions]
-- **Dependencies / feature flags:** [auth, third-party services, flags]
-- **Related tickets / designs:** [links]
-
-## User Story
-
-> As a [ROLE], I want [GOAL] so that [BENEFIT].
 
 ## Acceptance Criteria
+ All features should be covered
+ 1. create a todo list
+ 2. add items (4)
+ 3. finish items. Expect to be finished
+ 4. Remove item from the list. Expect to be removed
 
-[Paste verbatim from Jira]
 
 ## Requirements for the Test Plan
 
@@ -66,3 +58,5 @@ Create a detailed test plan for the **[FEATURE NAME]** feature.
   - Missing acceptance criteria
   - Open questions for PM / Engineering / Design
   - Assumptions you made while writing the plan
+
+  Revalidate your output agains the AC's.
