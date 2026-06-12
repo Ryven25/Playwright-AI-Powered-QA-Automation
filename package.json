@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx playwright test"
+    "test": "npx playwright test",
+    "delete-all-programs": "tsx .agents/skills/didaxis-program-deleter/scripts/delete-programs.ts"
   },
   "repository": {
     "type": "git",
@@ -20,7 +21,8 @@
   "homepage": "https://github.com/Ryven25/Playwright-AI-Powered-QA-Automation#readme",
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "cypress": "^15.15.0"
+    "cypress": "^15.15.0",
+    "tsx": "^4.22.4"
   },
   "dependencies": {
     "dotenv": "^17.4.2"

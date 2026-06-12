@@ -1,6 +1,28 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { trackProgram } from '../support/program-tracker';
 
 const programName = () => `Delete Test ${Date.now()}`;
+
+async function createProgram(page: Page, name: string, description = 'To be deleted') {
+  const responsePromise = page.waitForResponse(
+    (resp) =>
+      resp.url().includes('/api/programs') &&
+      resp.request().method() === 'POST' &&
+      resp.status() === 201
+  );
+
+  await page.getByRole('button', { name: '+ New Program' }).click();
+  await page.getByLabel('Program Name').fill(name);
+  await page.getByLabel('Description').fill(description);
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  const response = await responsePromise;
+  const body = await response.json();
+  const id = body?.data?.id || body?.id;
+  if (id) trackProgram(id);
+
+  await expect(page.getByText(name)).toBeVisible();
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');
@@ -11,14 +33,6 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/programs');
   await page.waitForLoadState('networkidle');
 });
-
-async function createProgram(page: any, name: string, description = 'To be deleted') {
-  await page.getByRole('button', { name: '+ New Program' }).click();
-  await page.getByLabel('Program Name').fill(name);
-  await page.getByLabel('Description').fill(description);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.getByText(name)).toBeVisible();
-}
 
 test.describe('DS-5: Delete Program - Positive Flows', () => {
   test('TC-01: Confirmation dialog appears when clicking delete', async ({ page }) => {

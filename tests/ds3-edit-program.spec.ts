@@ -1,12 +1,26 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { trackProgram } from '../support/program-tracker';
 
 const programName = () => `Edit Test ${Date.now()}`;
 
-async function createProgram(page: any, name: string, description = 'Test description') {
+async function createProgram(page: Page, name: string, description = 'Test description') {
+  const responsePromise = page.waitForResponse(
+    (resp) =>
+      resp.url().includes('/api/programs') &&
+      resp.request().method() === 'POST' &&
+      resp.status() === 201
+  );
+
   await page.getByRole('button', { name: '+ New Program' }).click();
   await page.getByLabel('Program Name').fill(name);
   await page.getByLabel('Description').fill(description);
   await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  const response = await responsePromise;
+  const body = await response.json();
+  const id = body?.data?.id || body?.id;
+  if (id) trackProgram(id);
+
   await expect(page.getByText(name)).toBeVisible();
 }
 

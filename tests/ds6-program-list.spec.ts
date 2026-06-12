@@ -1,4 +1,26 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { trackProgram } from '../support/program-tracker';
+
+async function createAndTrack(page: Page, name: string, description?: string): Promise<void> {
+  const responsePromise = page.waitForResponse(
+    (resp) =>
+      resp.url().includes('/api/programs') &&
+      resp.request().method() === 'POST' &&
+      resp.status() === 201
+  );
+
+  await page.getByRole('button', { name: '+ New Program' }).click();
+  await page.getByLabel('Program Name').fill(name);
+  if (description) {
+    await page.getByLabel('Description').fill(description);
+  }
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  const response = await responsePromise;
+  const body = await response.json();
+  const id = body?.data?.id || body?.id;
+  if (id) trackProgram(id);
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');
@@ -23,35 +45,21 @@ test.describe('DS-6: Program List Display - Positive Flows', () => {
 
   test('TC-03: Each program shows its name', async ({ page }) => {
     const name = `List Display ${Date.now()}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(name);
-    await page.getByLabel('Description').fill('Visible in list');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
+    await createAndTrack(page, name, 'Visible in list');
     await expect(page.getByText(name)).toBeVisible();
   });
 
   test('TC-04: Each program shows its description', async ({ page }) => {
     const name = `Desc Check ${Date.now()}`;
     const description = `Unique desc ${Date.now()}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(name);
-    await page.getByLabel('Description').fill(description);
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
+    await createAndTrack(page, name, description);
     await expect(page.getByText(description)).toBeVisible();
   });
 
   test('TC-05: Each program row has Edit and Delete action buttons', async ({ page }) => {
     const name = `Actions Check ${Date.now()}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(name);
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await createAndTrack(page, name);
     await expect(page.getByText(name)).toBeVisible();
-
     await expect(page.getByRole('button', { name: `Edit ${name}` })).toBeVisible();
     await expect(page.getByRole('button', { name: `Delete ${name}` })).toBeVisible();
   });
@@ -77,31 +85,19 @@ test.describe('DS-6: Program List Display - Edge Cases', () => {
   test('TC-08: Program with very long name displays correctly', async ({ page }) => {
     const ts = Date.now();
     const longName = `LongName${ts}${'X'.repeat(80)}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(longName);
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
+    await createAndTrack(page, longName);
     await expect(page.getByText(`LongName${ts}`)).toBeVisible();
   });
 
   test('TC-09: Program without description displays name only', async ({ page }) => {
     const name = `No Desc ${Date.now()}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(name);
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
-
+    await createAndTrack(page, name);
     await expect(page.getByText(name)).toBeVisible();
   });
 
   test('TC-10: Newly created program appears at the top of the list', async ({ page }) => {
     const name = `Latest ${Date.now()}`;
-
-    await page.getByRole('button', { name: '+ New Program' }).click();
-    await page.getByLabel('Program Name').fill(name);
-    await page.getByLabel('Description').fill('Should be first');
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await createAndTrack(page, name, 'Should be first');
 
     const firstRow = page.getByRole('row').nth(1);
     await expect(firstRow).toContainText(name);

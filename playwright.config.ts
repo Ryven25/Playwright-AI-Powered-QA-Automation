@@ -9,6 +9,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  globalSetup: './support/global-setup.ts',
+  globalTeardown: './support/global-teardown.ts',
   reporter: [
     ['html'],
     ['./reporters/failure-summary-reporter.ts'],

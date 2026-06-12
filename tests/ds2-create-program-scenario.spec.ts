@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { trackProgram } from '../support/program-tracker';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');
@@ -15,22 +16,24 @@ test.describe('DS-2: Successfully create a program', () => {
     const uniqueName = `Web Development 2026 ${Date.now()}`;
     const description = 'Full-stack web development program';
 
-    // Given I am on the program creation form
+    const responsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/api/programs') &&
+        resp.request().method() === 'POST' &&
+        resp.status() === 201
+    );
+
     await page.getByRole('button', { name: '+ New Program' }).click();
-
-    // When I fill in Program Name with "Web Development 2026"
     await page.getByLabel('Program Name').fill(uniqueName);
-
-    // And I fill in Description with "Full-stack web development program"
     await page.getByLabel('Description').fill(description);
-
-    // And I click Create
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Then the modal closes
-    await expect(page.getByLabel('Program Name')).toBeHidden();
+    const response = await responsePromise;
+    const body = await response.json();
+    const id = body?.data?.id || body?.id;
+    if (id) trackProgram(id);
 
-    // And the program list shows "Web Development 2026"
+    await expect(page.getByLabel('Program Name')).toBeHidden();
     await expect(page.getByText(uniqueName)).toBeVisible();
   });
 });
