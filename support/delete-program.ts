@@ -26,8 +26,35 @@ function authHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${requireEnv('DIDAXIS_API_TOKEN')}` };
 }
 
+function apiBaseUrl(): string {
+  return requireEnv('DIDAXIS_URL').replace(/\/+$/, '');
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  retries = 3
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`fetch failed after ${retries} attempts: ${String(lastError)}`);
+}
+
 export async function getAllPrograms(): Promise<ProgramSummary[]> {
-  const response = await fetch(`${requireEnv('DIDAXIS_URL')}/api/programs`, {
+  const response = await fetchWithRetry(`${apiBaseUrl()}/api/programs`, {
     headers: authHeaders(),
   });
 
@@ -47,13 +74,10 @@ export async function getAllPrograms(): Promise<ProgramSummary[]> {
 }
 
 export async function deleteProgramById(id: string): Promise<DeleteProgramResult> {
-  const response = await fetch(
-    `${requireEnv('DIDAXIS_URL')}/api/programs/${id}`,
-    {
-      method: 'DELETE',
-      headers: authHeaders(),
-    }
-  );
+  const response = await fetchWithRetry(`${apiBaseUrl()}/api/programs/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
 
   let message = response.statusText;
   try {

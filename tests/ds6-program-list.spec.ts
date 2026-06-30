@@ -1,105 +1,96 @@
-import { test, expect, Page } from '@playwright/test';
-import { trackProgram } from '../support/program-tracker';
-
-async function createAndTrack(page: Page, name: string, description?: string): Promise<void> {
-  const responsePromise = page.waitForResponse(
-    (resp) =>
-      resp.url().includes('/api/programs') &&
-      resp.request().method() === 'POST' &&
-      resp.status() === 201
-  );
-
-  await page.getByRole('button', { name: '+ New Program' }).click();
-  await page.getByLabel('Program Name').fill(name);
-  if (description) {
-    await page.getByLabel('Description').fill(description);
-  }
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-  const response = await responsePromise;
-  const body = await response.json();
-  const id = body?.data?.id || body?.id;
-  if (id) trackProgram(id);
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('/login');
-  await page.getByLabel('Email').fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByLabel('Password').fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole('button', { name: 'Sign In' }).click();
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
-  await page.goto('/programs');
-  await page.waitForLoadState('networkidle');
-});
+import { test, expect } from '@playwright/test';
+import { createProgramAndTrack } from '../fixtures/create-program.helper';
+import { LoginPage } from '../pages/didaxis/login.page';
+import { ProgramsPage } from '../pages/didaxis/programs.page';
+import { AUTH_ROUTES, EMPTY_STORAGE_STATE } from '../support/auth.constants';
 
 test.describe('DS-6: Program List Display - Positive Flows', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
   test('TC-01: Programs page shows heading and description', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Programs' })).toBeVisible();
-    await expect(page.getByText('Manage academic programs and semesters')).toBeVisible();
+    const programs = new ProgramsPage(page);
+    await expect(programs.heading).toBeVisible();
+    await expect(programs.pageDescription).toBeVisible();
   });
 
   test('TC-02: Program list displays as a table with Program column', async ({ page }) => {
-    await expect(page.getByRole('table')).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Program' })).toBeVisible();
+    const programs = new ProgramsPage(page);
+    await expect(programs.table).toBeVisible();
+    await expect(programs.programColumnHeader).toBeVisible();
   });
 
   test('TC-03: Each program shows its name', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `List Display ${Date.now()}`;
-    await createAndTrack(page, name, 'Visible in list');
-    await expect(page.getByText(name)).toBeVisible();
+    await createProgramAndTrack(programs, name, 'Visible in list');
+    await expect(programs.programText(name)).toBeVisible();
   });
 
   test('TC-04: Each program shows its description', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `Desc Check ${Date.now()}`;
     const description = `Unique desc ${Date.now()}`;
-    await createAndTrack(page, name, description);
-    await expect(page.getByText(description)).toBeVisible();
+    await createProgramAndTrack(programs, name, description);
+    await expect(programs.programText(description)).toBeVisible();
   });
 
   test('TC-05: Each program row has Edit and Delete action buttons', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `Actions Check ${Date.now()}`;
-    await createAndTrack(page, name);
-    await expect(page.getByText(name)).toBeVisible();
-    await expect(page.getByRole('button', { name: `Edit ${name}` })).toBeVisible();
-    await expect(page.getByRole('button', { name: `Delete ${name}` })).toBeVisible();
+    await createProgramAndTrack(programs, name);
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.editButton(name)).toBeVisible();
+    await expect(programs.deleteButton(name)).toBeVisible();
   });
 
   test('TC-06: New Program button is always visible', async ({ page }) => {
-    await expect(page.getByRole('button', { name: '+ New Program' })).toBeVisible();
+    const programs = new ProgramsPage(page);
+    await expect(programs.newProgramButton).toBeVisible();
   });
 });
 
 test.describe('DS-6: Program List Display - Negative Flows', () => {
-  test('TC-07: Programs page redirects to login without auth', async ({ browser }) => {
-    const context = await browser.newContext();
-    const newPage = await context.newPage();
-    await newPage.goto('/programs');
+  test.use({ storageState: EMPTY_STORAGE_STATE });
 
-    await newPage.waitForURL(/\/login/, { timeout: 10000 });
-    await expect(newPage.getByRole('button', { name: 'Sign In' })).toBeVisible();
-    await context.close();
+  test('TC-07: Programs page redirects to login without auth', async ({ page }) => {
+    await page.goto(AUTH_ROUTES.programs);
+
+    await page.waitForURL(/\/login/, { timeout: 10000 });
+
+    const login = new LoginPage(page);
+    await expect(login.signInButton).toBeVisible();
   });
 });
 
 test.describe('DS-6: Program List Display - Edge Cases', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
   test('TC-08: Program with very long name displays correctly', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const ts = Date.now();
     const longName = `LongName${ts}${'X'.repeat(80)}`;
-    await createAndTrack(page, longName);
-    await expect(page.getByText(`LongName${ts}`)).toBeVisible();
+    await createProgramAndTrack(programs, longName);
+    await expect(programs.programText(`LongName${ts}`)).toBeVisible();
   });
 
   test('TC-09: Program without description displays name only', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `No Desc ${Date.now()}`;
-    await createAndTrack(page, name);
-    await expect(page.getByText(name)).toBeVisible();
+    await createProgramAndTrack(programs, name);
+    await expect(programs.programText(name)).toBeVisible();
   });
 
   test('TC-10: Newly created program appears at the top of the list', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `Latest ${Date.now()}`;
-    await createAndTrack(page, name, 'Should be first');
+    await createProgramAndTrack(programs, name, 'Should be first');
 
-    const firstRow = page.getByRole('row').nth(1);
-    await expect(firstRow).toContainText(name);
+    await expect(programs.firstDataRow()).toContainText(name);
   });
 });

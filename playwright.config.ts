@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
+import { AUTH_SETUP_PROJECT, AUTH_STORAGE_STATE } from './support/auth.constants';
 
 dotenv.config();
 
@@ -21,7 +22,22 @@ export default defineConfig({
   },
   projects: [
     {
+      name: AUTH_SETUP_PROJECT,
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
+      name: 'didaxis',
+      testMatch: /ds.*\.spec\.ts/,
+      testIgnore: /auth\.setup\.ts/,
+      dependencies: [AUTH_SETUP_PROJECT],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH_STORAGE_STATE,
+      },
+    },
+    {
       name: 'chromium',
+      testMatch: /(positive|negative|edge)-(flows|cases)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

@@ -1,43 +1,20 @@
-import { test, expect, Page } from '@playwright/test';
-import { trackProgram } from '../support/program-tracker';
+import { test, expect } from '@playwright/test';
+import { createProgramAndTrack } from '../fixtures/create-program.helper';
+import { ProgramsPage } from '../pages/didaxis/programs.page';
 
 const programName = () => `Delete Test ${Date.now()}`;
 
-async function createProgram(page: Page, name: string, description = 'To be deleted') {
-  const responsePromise = page.waitForResponse(
-    (resp) =>
-      resp.url().includes('/api/programs') &&
-      resp.request().method() === 'POST' &&
-      resp.status() === 201
-  );
-
-  await page.getByRole('button', { name: '+ New Program' }).click();
-  await page.getByLabel('Program Name').fill(name);
-  await page.getByLabel('Description').fill(description);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
-
-  const response = await responsePromise;
-  const body = await response.json();
-  const id = body?.data?.id || body?.id;
-  if (id) trackProgram(id);
-
-  await expect(page.getByText(name)).toBeVisible();
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('/login');
-  await page.getByLabel('Email').fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByLabel('Password').fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole('button', { name: 'Sign In' }).click();
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
-  await page.goto('/programs');
-  await page.waitForLoadState('networkidle');
-});
-
 test.describe('DS-5: Delete Program - Positive Flows', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
   test('TC-01: Confirmation dialog appears when clicking delete', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
+    await expect(programs.programText(name)).toBeVisible();
 
     page.once('dialog', (dialog) => {
       expect(dialog.type()).toBe('confirm');
@@ -45,72 +22,88 @@ test.describe('DS-5: Delete Program - Positive Flows', () => {
       dialog.dismiss();
     });
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
-    await expect(page.getByText(name)).toBeVisible();
+    await programs.clickDelete(name);
+    await expect(programs.programText(name)).toBeVisible();
   });
 
   test('TC-02: Program is removed after confirming deletion', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     page.once('dialog', (dialog) => dialog.accept());
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
-    await expect(page.getByText(name)).toBeHidden();
+    await programs.clickDelete(name);
+    await expect(programs.programText(name)).toBeHidden();
   });
 
   test('TC-03: Program persists after cancelling deletion', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     page.once('dialog', (dialog) => dialog.dismiss());
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
-    await expect(page.getByText(name)).toBeVisible();
+    await programs.clickDelete(name);
+    await expect(programs.programText(name)).toBeVisible();
   });
 });
 
 test.describe('DS-5: Delete Program - Negative Flows', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
   test('TC-04: Dismissing dialog keeps program in list', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     page.once('dialog', (dialog) => dialog.dismiss());
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
+    await programs.clickDelete(name);
 
-    await expect(page.getByText(name)).toBeVisible();
+    await expect(programs.programText(name)).toBeVisible();
   });
 
   test('TC-05: Other programs unaffected by deletion', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name1 = `Keep ${Date.now()}`;
     const name2 = `Remove ${Date.now()}`;
-    await createProgram(page, name1, 'Stays');
-    await createProgram(page, name2, 'Goes');
+    await createProgramAndTrack(programs, name1, 'Stays');
+    await createProgramAndTrack(programs, name2, 'Goes');
 
     page.once('dialog', (dialog) => dialog.accept());
 
-    await page.getByRole('button', { name: `Delete ${name2}` }).click();
+    await programs.clickDelete(name2);
 
-    await expect(page.getByText(name2)).toBeHidden();
-    await expect(page.getByText(name1)).toBeVisible();
+    await expect(programs.programText(name2)).toBeHidden();
+    await expect(programs.programText(name1)).toBeVisible();
   });
 });
 
 test.describe('DS-5: Delete Program - Edge Cases', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
   test('TC-06: Delete program with special characters in name', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = `Prog & "Quotes" <Tags> ${Date.now()}`;
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     page.once('dialog', (dialog) => dialog.accept());
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
-    await expect(page.getByText(name)).toBeHidden();
+    await programs.clickDelete(name);
+    await expect(programs.programText(name)).toBeHidden();
   });
 
   test('TC-07: Confirmation message includes program name', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     let dialogMessage = '';
     page.once('dialog', (dialog) => {
@@ -118,13 +111,14 @@ test.describe('DS-5: Delete Program - Edge Cases', () => {
       dialog.dismiss();
     });
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
+    await programs.clickDelete(name);
     expect(dialogMessage).toContain(name);
   });
 
   test('TC-08: Confirmation message warns about data loss', async ({ page }) => {
+    const programs = new ProgramsPage(page);
     const name = programName();
-    await createProgram(page, name);
+    await createProgramAndTrack(programs, name);
 
     let dialogMessage = '';
     page.once('dialog', (dialog) => {
@@ -132,7 +126,7 @@ test.describe('DS-5: Delete Program - Edge Cases', () => {
       dialog.dismiss();
     });
 
-    await page.getByRole('button', { name: `Delete ${name}` }).click();
+    await programs.clickDelete(name);
     expect(dialogMessage).toContain('cannot be undone');
   });
 });

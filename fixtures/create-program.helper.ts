@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test';
+import { ProgramsPage } from '../pages/didaxis/programs.page';
 import { trackProgram } from '../support/program-tracker';
 
 /**
@@ -6,21 +6,20 @@ import { trackProgram } from '../support/program-tracker';
  * Intercepts the POST /api/programs response to capture the created program's UUID.
  */
 export async function createProgramAndTrack(
-  page: Page,
+  programs: ProgramsPage,
   name: string,
-  description = 'Test description'
+  description?: string
 ): Promise<string> {
-  const responsePromise = page.waitForResponse(
+  const responsePromise = programs.page.waitForResponse(
     (resp) =>
       resp.url().includes('/api/programs') &&
       resp.request().method() === 'POST' &&
       resp.status() === 201
   );
 
-  await page.getByRole('button', { name: '+ New Program' }).click();
-  await page.getByLabel('Program Name').fill(name);
-  await page.getByLabel('Description').fill(description);
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await programs.openNewProgramModal();
+  await programs.newProgram.fill(name, description);
+  await programs.newProgram.submit();
 
   const response = await responsePromise;
   const body = await response.json();
@@ -30,6 +29,5 @@ export async function createProgramAndTrack(
     trackProgram(id);
   }
 
-  await expect(page.getByText(name)).toBeVisible();
-  return id;
+  return id ?? '';
 }
