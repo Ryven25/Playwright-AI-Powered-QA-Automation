@@ -30,7 +30,7 @@ test.describe('DS-1: Create Program - Positive Flows', () => {
     const description = `Desc ${Date.now()}`;
     await createProgramAndTrack(programs, name, description);
     await expect(programs.programText(name)).toBeVisible();
-    // await expect(programs.programText(description)).toBeVisible();
+    await expect(programs.programText(description)).toBeVisible();
   });
 
   test('TC-04: Create program with only the name (description optional)', async ({ page }) => {
