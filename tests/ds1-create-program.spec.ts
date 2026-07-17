@@ -21,7 +21,7 @@ test.describe('DS-1: Create Program - Positive Flows', () => {
     const programs = new ProgramsPage(page);
     const name = programName();
     await createProgramAndTrack(programs, name, 'Testing modal close');
-    await expect(programs.newProgram.programName).not.toBeHidden();
+    await expect(programs.newProgram.programName).toBeHidden();
   });
 
   test('TC-03: New program appears in the programs list immediately', async ({ page }) => {
@@ -30,14 +30,14 @@ test.describe('DS-1: Create Program - Positive Flows', () => {
     const description = `Desc ${Date.now()}`;
     await createProgramAndTrack(programs, name, description);
     await expect(programs.programText(name)).toBeVisible();
-    await expect(programs.programText(description)).not.toBeVisible();
+    await expect(programs.programText(description)).toBeVisible();
   });
 
   test('TC-04: Create program with only the name (description optional)', async ({ page }) => {
     const programs = new ProgramsPage(page);
     const name = programName();
     await createProgramAndTrack(programs, name);
-    await expect(programs.programText(name)).not.toBeVisible();
+    await expect(programs.programText(name)).toBeVisible();
   });
 });
 
