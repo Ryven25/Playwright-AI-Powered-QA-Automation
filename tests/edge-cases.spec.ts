@@ -63,7 +63,7 @@ test.describe('Edge Cases', () => {
 
     await page.locator('.todo-list li').nth(0).dblclick();
     const editInput = page.locator('.todo-list li').nth(0).locator('.edit');
-    await editInput.fill('Read two booksre');
+    await editInput.fill('Read two books');
     await editInput.dispatchEvent('blur');
 
     await expect(page.locator('.todo-list li').nth(0)).toHaveText('Read two books');
