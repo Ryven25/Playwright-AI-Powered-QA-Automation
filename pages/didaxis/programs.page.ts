@@ -11,6 +11,8 @@ export class ProgramsPage {
   readonly table: Locator;
   readonly programColumnHeader: Locator;
   readonly newProgramButton: Locator;
+  readonly emptyStateMessage: Locator;
+  readonly emptyStateCreateButton: Locator;
 
   constructor(readonly page: Page) {
     this.newProgram = new NewProgramModal(page);
@@ -20,6 +22,31 @@ export class ProgramsPage {
     this.table = page.getByRole('table');
     this.programColumnHeader = page.getByRole('columnheader', { name: 'Program' });
     this.newProgramButton = page.getByRole('button', { name: '+ New Program' });
+    this.emptyStateMessage = page.getByText(
+      'No programs yet. Create your first program to get started.'
+    );
+    this.emptyStateCreateButton = page.getByRole('button', {
+      name: 'Create Program',
+      exact: true,
+    });
+  }
+
+  /**
+   * Mock GET /api/programs (list only) as empty so empty-state UI can be
+   * asserted without deleting shared-environment data. Other methods / IDs continue.
+   */
+  async mockEmptyProgramsList(): Promise<void> {
+    await this.page.route(/\/api\/programs\/?(\?.*)?$/, async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: [] }),
+        });
+        return;
+      }
+      await route.continue();
+    });
   }
 
   async goto(): Promise<void> {
