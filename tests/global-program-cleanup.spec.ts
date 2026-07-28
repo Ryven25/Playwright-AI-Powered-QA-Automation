@@ -8,7 +8,7 @@ const PROGRAM_PREFIX = 'Global Cleanup Test';
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('DS-7: Global program cleanup', () => {
+test.describe('Global program cleanup', () => {
   test('TC-01: Previous run left no stale Global Cleanup Test programs', async () => {
     test.skip(!process.env.DIDAXIS_API_TOKEN, 'DIDAXIS_API_TOKEN required for API verification');
 

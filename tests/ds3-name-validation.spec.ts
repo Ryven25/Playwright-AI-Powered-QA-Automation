@@ -4,7 +4,7 @@ import { ProgramsPage } from '../pages/didaxis/programs.page';
 
 const programName = () => `Validation ${Date.now()}`;
 
-test.describe('DS-4: Program Name Validation - Positive Flows', () => {
+test.describe('DS-3: Program Name Validation - Positive Flows', () => {
   test.beforeEach(async ({ page }) => {
     const programs = new ProgramsPage(page);
     await programs.goto();
@@ -32,7 +32,7 @@ test.describe('DS-4: Program Name Validation - Positive Flows', () => {
   });
 });
 
-test.describe('DS-4: Program Name Validation - Negative Flows', () => {
+test.describe('DS-3: Program Name Validation - Negative Flows', () => {
   test.beforeEach(async ({ page }) => {
     const programs = new ProgramsPage(page);
     await programs.goto();
@@ -64,7 +64,7 @@ test.describe('DS-4: Program Name Validation - Negative Flows', () => {
   });
 });
 
-test.describe('DS-4: Program Name Validation - Edge Cases', () => {
+test.describe('DS-3: Program Name Validation - Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
     const programs = new ProgramsPage(page);
     await programs.goto();

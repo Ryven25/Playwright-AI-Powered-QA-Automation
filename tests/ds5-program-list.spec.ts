@@ -4,7 +4,7 @@ import { LoginPage } from '../pages/didaxis/login.page';
 import { ProgramsPage } from '../pages/didaxis/programs.page';
 import { AUTH_ROUTES, EMPTY_STORAGE_STATE } from '../support/auth.constants';
 
-test.describe('DS-6: Program List Display - Positive Flows', () => {
+test.describe('DS-5: Program List Display - Positive Flows', () => {
   test.beforeEach(async ({ page }) => {
     const programs = new ProgramsPage(page);
     await programs.goto();
@@ -52,7 +52,7 @@ test.describe('DS-6: Program List Display - Positive Flows', () => {
   });
 });
 
-test.describe('DS-6: Program List Display - Negative Flows', () => {
+test.describe('DS-5: Program List Display - Negative Flows', () => {
   test.use({ storageState: EMPTY_STORAGE_STATE });
 
   test('TC-07: Programs page redirects to login without auth', async ({ page }) => {
@@ -65,7 +65,7 @@ test.describe('DS-6: Program List Display - Negative Flows', () => {
   });
 });
 
-test.describe('DS-6: Program List Display - Edge Cases', () => {
+test.describe('DS-5: Program List Display - Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
     const programs = new ProgramsPage(page);
     await programs.goto();

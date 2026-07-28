@@ -1,49 +1,58 @@
 ---
 name: jira-ticket-analyzer
-description: Turns a Jira ticket's acceptance criteria into structured, reviewable Gherkin test scenarios. Use this skill whenever the user references a Jira ticket (DS-1, DS-2, etc.) and asks for test cases, a test plan, scenarios, or wants to plan testing for a ticket â€” even if they don't say the word "Gherkin". 
+description: Turns a Jira ticket's acceptance criteria into structured, reviewable Gherkin test scenarios and a detailed test plan. Use this skill whenever the user references a Jira ticket (DS-1, DS-2, etc.) and asks for test cases, a test plan, scenarios, or wants to plan testing for a ticket — even if they don't say the word "Gherkin".
 ---
 
-# Jira Ticket to Gherkin Test Cases
+# Jira Ticket to Test Plan + Gherkin
 
-Generate reviewable test scenarios from a Jira ticket. The Gherkin output
-is a human-readable checkpoint â€” the QA reviews it before any Playwright
-code gets written.
+Generate reviewable test artifacts from a Jira ticket. Humans review the
+plan before Playwright code is written.
 
 ## Steps
 
-1. Read the referenced Jira ticket using the Atlassian MCP. Extract the
-   title, description, and every acceptance criterion.
+1. Read the referenced Jira ticket using the Atlassian MCP (or Jira REST
+   fallback). Extract the title, description, and every acceptance criterion.
 
-2. Generate test scenarios as a Gherkin `.feature` file:
+2. Create folder `test-suite/<ticket-key>/` (e.g. `test-suite/DS-4/`).
+
+3. Write Gherkin as `<ticket-key>.feature.md`:
    - One `Feature`, named after the ticket
    - Cover every acceptance criterion with at least one `Scenario`
-   - Add negative scenarios â€” what should NOT happen
-   - Add edge-case scenarios â€” boundaries, empty inputs, duplicates,
+   - Add negative scenarios — what should NOT happen
+   - Add edge-case scenarios — boundaries, empty inputs, duplicates,
      special characters, max length
+   - Given / When / Then; group with `# Happy paths`, `# Negative`, `# Edge cases`
+   - Real values from the ticket — never placeholders
+   - End with a comment block listing ambiguities / gaps
 
-3. Write each scenario in Given / When / Then form. `Given` sets the
-   starting state, `When` is the action under test, `Then` is the
-   observable expected outcome.
-
-4. Group scenarios with comments: `# Happy paths`, `# Negative`, `# Edge cases`.
-
-5. Use real, specific values from the ticket - never placeholders.
-
-6. End the file with a comment block listing any ambiguities or gaps
-   found in the ticket's acceptance criteria, so the QA can resolve them.
+4. Write a detailed plan as `<ticket-key>_test_plan.md`:
+   - Traceability table (AC → TC IDs)
+   - Each TC: ID, title, AC reference, preconditions, steps, expected result, priority
+   - Link the expected automation path: `tests/ds{N}-{slug}.spec.ts`
 
 ## Output
 
-Save as `features/<ticket-key>.feature.md`.
+```
+test-suite/<ticket-key>/
+  <ticket-key>.feature.md
+  <ticket-key>_test_plan.md
+```
+
+Do **not** also write under `features/` — `test-suite/` is the single source of truth.
+
+## Spec naming (for handoff to test-writer)
+
+Jira `DS-{N}` → `tests/ds{N}-{short-slug}.spec.ts`  
+Examples: DS-4 delete → `tests/ds4-delete-program.spec.ts`; DS-3 validation → `tests/ds3-name-validation.spec.ts`.
 
 ## Example
 
-TC-XXX - Test title
+```gherkin
+Feature: DS-4 — Delete program with confirmation
 
-Scenario: Navigate to program creation form
-  Given I am logged in as admin
-  When I navigate to the Programs page
-  And I click "+ New Program"
-  Then I see the program creation form with fields: Program Name, Description
-
-
+  Scenario: Delete icon opens a confirmation dialog
+    Given I am logged in as admin
+    And a program named "Test Program" exists
+    When I click the delete icon for "Test Program"
+    Then I see a confirmation dialog
+```

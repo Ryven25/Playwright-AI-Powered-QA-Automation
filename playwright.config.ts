@@ -27,7 +27,8 @@ export default defineConfig({
     },
     {
       name: 'didaxis',
-      testMatch: /ds.*\.spec\.ts/,
+      // Jira-aligned Didaxis specs (ds1..dsN) plus shared cleanup utility
+      testMatch: /(?:ds\d+.*|global-program-cleanup)\.spec\.ts/,
       testIgnore: /auth\.setup\.ts/,
       dependencies: [AUTH_SETUP_PROJECT],
       use: {
