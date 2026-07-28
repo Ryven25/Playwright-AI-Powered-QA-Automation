@@ -53,6 +53,12 @@ page.getByRole('dialog', { name: 'New Program' }).getByLabel('Program Name');
 ## Folder layout
 
 ```
+test-suite/
+  DS-{N}/
+    DS-{N}.feature.md
+    DS-{N}_test_plan.md
+tests/
+  ds{N}-{slug}.spec.ts   # filename N must match Jira DS-N
 pages/
   didaxis/
     login.page.ts
@@ -63,6 +69,7 @@ pages/
       app-shell.component.ts   # optional — sidebar nav only
 ```
 
+- Specs: `tests/ds{N}-{slug}.spec.ts` and `describe('DS-{N}: …')` use the **same** Jira number.
 - One class per file; filename matches class (`programs.page.ts` → `ProgramsPage`).
 - Modals and reusable widgets go under `components/`.
 - Shared constants (routes, auth paths) stay in `support/` — not in page objects.
