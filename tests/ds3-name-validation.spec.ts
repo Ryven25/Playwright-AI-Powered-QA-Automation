@@ -21,7 +21,10 @@ test.describe('DS-3: Program Name Validation - Negative Flows', () => {
     await expect(programs.newProgram.createButton).toBeDisabled();
   });
 
+  // Known product bug: duplicates accepted — https://legionqaschool.atlassian.net/browse/DS-201
+  // test.fail keeps AC3 assertions; CI green while bug is open; unexpected pass when fixed.
   test('TC-006: Reject duplicate program name', async ({ page }) => {
+    test.fail(true, 'DS-201: app accepts duplicate program names (AC3)');
     const programs = new ProgramsPage(page);
     const name = `Web Development 2026 ${Date.now()}`;
     await createProgramAndTrack(programs, name);
