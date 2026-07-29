@@ -29,6 +29,14 @@ Feature: DS-4 — Delete program with confirmation
     Then the confirmation dialog closes
     And the program list still shows "Web Development 2026"
 
+  Scenario: Deleted program does not reappear after page refresh
+    Given I am logged in as admin on Didaxis Studio
+    And a program named "Ephemeral Program" exists on the Programs page
+    When I click the delete icon for "Ephemeral Program"
+    And I confirm deletion
+    And I reload the Programs page
+    Then the program list does not show "Ephemeral Program"
+
   # Negative
 
   Scenario: Dismissing confirmation does not delete the program
@@ -92,6 +100,6 @@ Ambiguities & Gaps
 6. Non-admin access is not covered.
    - AC assumes admin; behavior for other roles is undefined.
 
-7. Persistence after reload is implied but not stated.
-   - Assumption: removal from the list reflects a persisted delete (covered by API cleanup / re-fetch on navigation).
+7. Persistence after reload is implied by AC1 (removed from list) but not stated as a reload check.
+   - Automated as TC-006 / "Deleted program does not reappear after page refresh".
 -->

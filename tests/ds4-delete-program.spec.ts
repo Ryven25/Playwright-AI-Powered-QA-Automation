@@ -37,6 +37,20 @@ test.describe('DS-4: Delete Program - Positive Flows', () => {
     await expect(programs.programText(name)).toBeHidden();
   });
 
+  test('TC-09: Deleted program does not reappear after page refresh', async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    const name = unique('Ephemeral Program');
+    await createProgramAndTrack(programs, name);
+
+    page.once('dialog', (dialog) => dialog.accept());
+
+    await programs.clickDelete(name);
+    await expect(programs.programText(name)).toBeHidden();
+
+    await programs.goto();
+    await expect(programs.programText(name)).toBeHidden();
+  });
+
   test('TC-03: Cancel keeps the program in the list', async ({ page }) => {
     const programs = new ProgramsPage(page);
     const name = unique('Web Development 2026');

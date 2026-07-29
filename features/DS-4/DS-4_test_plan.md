@@ -5,6 +5,11 @@
 **Surface:** Web UI — Programs page (`/programs`) + native `window.confirm`  
 **Story:** As an admin user, I want to delete a program I no longer need, with a confirmation step to prevent accidental deletion.
 
+### Acceptance criteria (from Jira)
+
+1. **AC1 — Delete with confirmation:** Given program `Test Program` exists; when delete icon is clicked, a confirmation dialog appears; when deletion is confirmed, `Test Program` is removed from the list.
+2. **AC2 — Cancel deletion:** When confirmation is shown and Cancel is clicked, the program still exists in the list.
+
 ---
 
 ## Traceability (AC → Test Cases)
@@ -16,7 +21,7 @@
 | — | Edge / isolation | TC-009, TC-010 |
 
 **Automation:** `tests/ds4-delete-program.spec.ts`  
-**Gherkin:** `test-suite/DS-4/DS-4.feature.md`
+**Gherkin:** `features/DS-4/DS-4.feature.md`
 
 ---
 
@@ -63,7 +68,7 @@
   2. Reload the Programs page
 - **Expected result:** Program remains absent after refresh
 - **Priority:** High
-- **Automated:** No (gap — add if product requires explicit persistence check)
+- **Automated:** Yes (`TC-09`) — **new in this pipeline run**
 
 ---
 
@@ -143,4 +148,3 @@
 2. Exact copy beyond name + “cannot be undone” is not contractual.
 3. Toast after delete not specified.
 4. Cascade / soft-delete / non-admin not in ACs.
-5. **TC-006 (reload persistence)** not yet automated — recommended follow-up.
