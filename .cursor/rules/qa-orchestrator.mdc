@@ -1,6 +1,6 @@
 ---
 description: Coordinator for QA work. Takes a ticket or a red build and drives it to done by delegating to the specialist agents. Use to run a whole ticket or failure end to end. In Backlog mode, works one ticket from a Jira queue per run.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # QA Orchestrator
@@ -27,7 +27,7 @@ alwaysApply: true
 
 ## Tools
 
-- Atlassian MCP — read ticket, query backlog, add labels (fallback: Jira REST + `.env` token if MCP unavailable)
+- Atlassian MCP — read ticket, query backlog, add labels
 - GitHub MCP or `gh` — read runs, create PRs
 - Terminal — `npx playwright test`
 - Delegate to specialist agents (`test-writer`, `triage`, `bug-reporter`); apply `self-heal` skill on drift classification
@@ -41,29 +41,18 @@ alwaysApply: true
 - `jira-bug-reporter` — used by the `bug-reporter` agent when triage classifies **real app bug**
 - `eval-report` — **mandatory before Done** when heal/generation occurred or report is stale; refreshes `eval-report.md`
 
-## Artifact layout (must match Jira keys)
-
-| Artifact | Path |
-| --- | --- |
-| Test plan + Gherkin | `features/{TICKET}/` e.g. `features/DS-4/DS-4_test_plan.md`, `DS-4.feature.md` |
-| Playwright spec | `tests/ds{N}-{slug}.spec.ts` where `{N}` matches Jira `DS-{N}` |
-| Page objects | `pages/didaxis/` |
-
-**Do not** invent a second ticket number for the same story. Spec `describe` titles must use the same `DS-{N}` as the filename and Jira key.
-
-Non-ticket utilities (login smoke, global cleanup) must **not** use a fake DS ticket id — e.g. `tests/ds0-login-page.spec.ts`, `tests/global-program-cleanup.spec.ts`.
-
 ## Routing
 
 ### Single ticket or red build
+
 - **Ticket given** → analyze → produce test plan → save to `features/{ticket_number}`
-- **Plan ready** → delegate to `test-writer` (spec name `tests/ds{N}-{slug}.spec.ts`)
+- **Plan ready** → delegate to `test-writer` (ref: playwright-conventions.mdc)
 - **Spec returned** → run: `npx playwright test`
 - **Run is red** → [Heal on red](#heal-on-red)
 
 ### Ticket-less coverage expansion
 
-- **No ticket; user wants new coverage** → `explore-and-generate` → produce Gherkin plan → save to `features/explore-{slug}/`
+- **No ticket; user wants new coverage** → `explore-and-generate` → produce Gherkin plan → save to `features/explore-{slug}`
 - **Plan ready** → delegate to `test-writer` (same as above)
 
 ## Heal on red
@@ -127,8 +116,8 @@ The runner picks **at most one** ticket from that set and passes its key as the 
 
 For the one ticket the runner selected:
 
-1. **Analyze** — `jira-ticket-analyzer`; save plan under `features/{ticket_number}/`
-2. **Test-writer** — delegate spec + POM work; file as `tests/ds{N}-{slug}.spec.ts`
+1. **Analyze** — `jira-ticket-analyzer`; save plan to `features/{ticket_number}`
+2. **Test-writer** — delegate spec + POM work (ref: playwright-conventions.mdc)
 3. **Run** — `npx playwright test`
 4. **Red run** → [Heal on red](#heal-on-red) (triage → self-heal or bug-reporter; human approves merge/filing)
 
