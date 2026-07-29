@@ -29,11 +29,12 @@ test.describe('DS-3: Program Name Validation - Negative Flows', () => {
     await expect(programs.editButton(name)).toHaveCount(1);
 
     await programs.openNewProgramModal();
-    await programs.newProgram.fill(name, 'Duplicate entry');
+    await programs.newProgram.fill(name, 'Second create attempt');
     await programs.newProgram.submit();
 
     await expect(programs.newProgram.duplicateNameError).toBeVisible();
-    // Second program with the same name must not be created
+    await expect(programs.newProgram.dialog).toBeVisible();
+    // Second program with the same name must not be created (AC3)
     await expect(programs.editButton(name)).toHaveCount(1);
   });
 });

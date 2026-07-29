@@ -11,6 +11,10 @@ export class ProgramsPage {
   readonly table: Locator;
   readonly programColumnHeader: Locator;
   readonly newProgramButton: Locator;
+  /** Message shown when the Programs list has zero programs (AC2). */
+  readonly emptyStateMessage: Locator;
+  /** Empty-state create CTA (distinct from header "+ New Program"). */
+  readonly emptyStateCreatePrompt: Locator;
 
   constructor(readonly page: Page) {
     this.newProgram = new NewProgramModal(page);
@@ -20,6 +24,8 @@ export class ProgramsPage {
     this.table = page.getByRole('table');
     this.programColumnHeader = page.getByRole('columnheader', { name: 'Program' });
     this.newProgramButton = page.getByRole('button', { name: '+ New Program' });
+    this.emptyStateMessage = page.getByText(/no programs/i);
+    this.emptyStateCreatePrompt = page.getByRole('button', { name: 'Create Program' });
   }
 
   async goto(): Promise<void> {

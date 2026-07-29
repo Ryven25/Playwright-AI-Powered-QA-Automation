@@ -15,10 +15,11 @@ export class NewProgramModal {
     this.description = this.dialog.getByRole('textbox', { name: 'Description' });
     this.createButton = this.dialog.getByRole('button', { name: 'Create', exact: true });
     this.cancelButton = this.dialog.getByRole('button', { name: 'Cancel' });
-    // Prefer dialog-scoped copy; fall back to page toast/banner if the app surfaces the error outside the modal.
-    this.duplicateNameError = page
-      .getByText(/already exists|duplicate|name.*(taken|in use)/i)
-      .or(this.dialog.getByRole('alert'));
+    // Scoped to the New Program dialog so list descriptions containing "Duplicate"
+    // (or similar) do not cause strict-mode matches / false positives.
+    this.duplicateNameError = this.dialog
+      .getByRole('alert')
+      .or(this.dialog.getByText(/already exists|duplicate (name|program)|name.*(taken|in use)/i));
   }
 
   async fill(name: string, description?: string): Promise<void> {
