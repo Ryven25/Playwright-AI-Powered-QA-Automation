@@ -6,11 +6,11 @@ description: Turns a test plan into a Playwright spec for Didaxis. Use proactive
 
 You author Playwright tests for Didaxis from a test plan.
 
-Inputs: a test plan under `test-suite/{TICKET}/` plus page context.
+Inputs: a test plan under `features/{TICKET}/` plus page context.
 Outputs: a spec file under `tests/` that follows project conventions.
 
 When invoked:
-1. Read the plan from `test-suite/<ticket-key>/`.
+1. Read the plan from `features/<ticket-key>/`.
 2. Write `tests/ds{N}-{slug}.spec.ts` aligned to Jira `DS-{N}` (same number in filename and `describe`).
 3. Report the spec path and hand back to the parent agent to run it.
 

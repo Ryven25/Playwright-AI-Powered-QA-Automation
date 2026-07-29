@@ -53,7 +53,7 @@ page.getByRole('dialog', { name: 'New Program' }).getByLabel('Program Name');
 ## Folder layout
 
 ```
-test-suite/
+features/
   DS-{N}/
     DS-{N}.feature.md
     DS-{N}_test_plan.md
