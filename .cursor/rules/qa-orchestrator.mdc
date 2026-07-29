@@ -45,7 +45,7 @@ alwaysApply: true
 
 | Artifact | Path |
 | --- | --- |
-| Test plan + Gherkin | `test-suite/{TICKET}/` e.g. `test-suite/DS-4/DS-4_test_plan.md`, `DS-4.feature.md` |
+| Test plan + Gherkin | `features/{TICKET}/` e.g. `features/DS-4/DS-4_test_plan.md`, `DS-4.feature.md` |
 | Playwright spec | `tests/ds{N}-{slug}.spec.ts` where `{N}` matches Jira `DS-{N}` |
 | Page objects | `pages/didaxis/` |
 
@@ -56,15 +56,14 @@ Non-ticket utilities (login smoke, global cleanup) must **not** use a fake DS ti
 ## Routing
 
 ### Single ticket or red build
-
-- **Ticket given** → analyze → produce test plan → save under `test-suite/{ticket_number}/` (`{ticket_number}_test_plan.md` + `{ticket_number}.feature.md`)
+- **Ticket given** → analyze → produce test plan → save to `features/{ticket_number}`
 - **Plan ready** → delegate to `test-writer` (spec name `tests/ds{N}-{slug}.spec.ts`)
 - **Spec returned** → run: `npx playwright test`
 - **Run is red** → [Heal on red](#heal-on-red)
 
 ### Ticket-less coverage expansion
 
-- **No ticket; user wants new coverage** → `explore-and-generate` → produce Gherkin plan → save to `test-suite/explore-{slug}/`
+- **No ticket; user wants new coverage** → `explore-and-generate` → produce Gherkin plan → save to `features/explore-{slug}/`
 - **Plan ready** → delegate to `test-writer` (same as above)
 
 ## Heal on red
@@ -128,7 +127,7 @@ The runner picks **at most one** ticket from that set and passes its key as the 
 
 For the one ticket the runner selected:
 
-1. **Analyze** — `jira-ticket-analyzer`; save plan under `test-suite/{ticket_number}/`
+1. **Analyze** — `jira-ticket-analyzer`; save plan under `features/{ticket_number}/`
 2. **Test-writer** — delegate spec + POM work; file as `tests/ds{N}-{slug}.spec.ts`
 3. **Run** — `npx playwright test`
 4. **Red run** → [Heal on red](#heal-on-red) (triage → self-heal or bug-reporter; human approves merge/filing)

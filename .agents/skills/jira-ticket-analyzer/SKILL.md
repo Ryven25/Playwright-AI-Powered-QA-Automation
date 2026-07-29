@@ -13,7 +13,7 @@ plan before Playwright code is written.
 1. Read the referenced Jira ticket using the Atlassian MCP (or Jira REST
    fallback). Extract the title, description, and every acceptance criterion.
 
-2. Create folder `test-suite/<ticket-key>/` (e.g. `test-suite/DS-4/`).
+2. Create folder `features/<ticket-key>/` (e.g. `features/DS-4/`).
 
 3. Write Gherkin as `<ticket-key>.feature.md`:
    - One `Feature`, named after the ticket
@@ -33,12 +33,12 @@ plan before Playwright code is written.
 ## Output
 
 ```
-test-suite/<ticket-key>/
+features/<ticket-key>/
   <ticket-key>.feature.md
   <ticket-key>_test_plan.md
 ```
 
-Do **not** also write under `features/` — `test-suite/` is the single source of truth.
+Do **not** also write under `test-suite/` — `features/` is the single source of truth.
 
 ## Spec naming (for handoff to test-writer)
 
