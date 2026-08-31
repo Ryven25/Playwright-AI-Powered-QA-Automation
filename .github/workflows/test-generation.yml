@@ -1,0 +1,83 @@
+name: Test Generation
+
+# Secrets (environment: dev1)
+# CURSOR_API_KEY — create at https://cursor.com/dashboard → API Keys → Add
+# ATLASSIAN_API_TOKEN, GITHUB_TOKEN, DIDAXIS_* — repo/environment secrets
+
+on:  schedule:
+    # Weekdays at 06:00 UTC (Mon–Fri)
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Generate tests from Jira backlog
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    environment: dev1
+
+    env:
+      CI: true
+      DIDAXIS_URL: ${{ secrets.DIDAXIS_URL }}
+      DIDAXIS_EMAIL: ${{ secrets.DIDAXIS_EMAIL }}
+      DIDAXIS_PASSWORD: ${{ secrets.DIDAXIS_PASSWORD }}
+      DIDAXIS_API_TOKEN: ${{ secrets.DIDAXIS_API_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Cursor CLI
+        run: curl https://cursor.com/install -fsS | bash
+
+      - name: Add Cursor CLI to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run backlog test generation
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          agent -p --force --trust --output-format text "$(cat <<'EOF'
+          You are the QA orchestrator in Backlog mode. Follow @.cursor/rules/qa-orchestrator.mdc.
+
+          Work every DS Jira ticket in status In Progress that does not have the tests-generated label.
+          If the queue is empty, exit with no further work.
+
+          For each ticket (budget: at most 5 per run):
+          1. Analyze the ticket and produce a Gherkin test plan under features/{ticket_number}.
+          2. Write a conforming Playwright spec under tests/ and any required POM updates (no inline locators).
+          3. Run it with npx playwright test.
+          4. If the run is red, triage first; heal locator drift in pages/ only; never change assertions.
+             If the same spec fails identically twice, skip tests-generated for that ticket, leave any PR open, and move on.
+          5. Open one PR per ticket linked to the Jira ticket, then add the tests-generated label on the ticket
+             (unless you stopped on repeated identical failure).
+
+          Never merge a PR. Never close or transition a ticket.
+          EOF
+          )"
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 5
