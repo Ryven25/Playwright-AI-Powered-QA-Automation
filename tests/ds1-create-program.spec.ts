@@ -116,4 +116,38 @@ test.describe('DS-1: Create Program - Edge Cases', () => {
     await createProgramAndTrack(programs, name, 'XSS test');
     await expect(programs.programText(name)).toBeVisible();
   });
+
+  test('TC-13: Program name at exactly 100 characters is accepted', { tag: '@regression' }, async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    const name = 'A'.repeat(100);
+    await createProgramAndTrack(programs, name, 'Max length boundary');
+    await expect(programs.programText(name)).toBeVisible();
+  });
+});
+
+test.describe('DS-1: Create Program - Max Length (DS-134)', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
+  // Known product bug — https://legionqaschool.atlassian.net/browse/DS-134
+  test('TC-14: Reject program name over 100 characters', { tag: '@regression' }, async ({ page }) => {
+    test.fail(true, 'DS-134: app accepts program names over 100 characters');
+    const programs = new ProgramsPage(page);
+    const overMax = 'B'.repeat(101);
+
+    await programs.openNewProgramModal();
+    await programs.newProgram.fill(overMax, 'Over max length test');
+
+    if (await programs.newProgram.createButton.isDisabled()) {
+      await expect(programs.programText(overMax)).toBeHidden();
+      return;
+    }
+
+    await programs.newProgram.submit();
+    await expect(programs.newProgram.nameLengthError).toBeVisible();
+    await expect(programs.newProgram.dialog).toBeVisible();
+    await expect(programs.programText(overMax)).toBeHidden();
+  });
 });
