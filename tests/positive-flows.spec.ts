@@ -17,8 +17,9 @@ test.describe('Positive Flows', () => {
   test('TC-01: Page loads with an empty todo list', async ({ page }) => {
     await expect(page).toHaveTitle(/TodoMVC/);
     await expect(page.getByPlaceholder('What needs to be done?')).toBeVisible();
-    await expect(page.locator('.todo-list li')).toHaveCount(0);
-    await expect(page.locator('.footer')).toBeHidden();
+    await expect(page.getByTestId('todo-item')).toHaveCount(0);
+    await expect(page.getByTestId('todo-count')).toBeHidden();
+    await expect(page.getByRole('link', { name: 'Completed' })).toBeHidden();
   });
 
   test('TC-02: Input field is focused on page load', async ({ page }) => {
@@ -31,9 +32,9 @@ test.describe('Positive Flows', () => {
     await input.fill(TODO_ITEMS[0]);
     await input.press('Enter');
 
-    await expect(page.locator('.todo-list li')).toHaveCount(1);
-    await expect(page.locator('.todo-list li').nth(0)).toHaveText(TODO_ITEMS[0]);
-    await expect(page.locator('.todo-count')).toContainText('1 item left');
+    await expect(page.getByTestId('todo-item')).toHaveCount(1);
+    await expect(page.getByTestId('todo-title').nth(0)).toHaveText(TODO_ITEMS[0]);
+    await expect(page.getByTestId('todo-count')).toContainText('1 item left');
   });
 
   test('TC-04: Adding a second todo item', async ({ page }) => {
@@ -43,9 +44,9 @@ test.describe('Positive Flows', () => {
     await input.fill(TODO_ITEMS[1]);
     await input.press('Enter');
 
-    await expect(page.locator('.todo-list li')).toHaveCount(2);
-    await expect(page.locator('.todo-list li').nth(1)).toHaveText(TODO_ITEMS[1]);
-    await expect(page.locator('.todo-count')).toContainText('2 items left');
+    await expect(page.getByTestId('todo-item')).toHaveCount(2);
+    await expect(page.getByTestId('todo-title').nth(1)).toHaveText(TODO_ITEMS[1]);
+    await expect(page.getByTestId('todo-count')).toContainText('2 items left');
   });
 
   test('TC-05: Adding a third todo item', async ({ page }) => {
@@ -55,9 +56,9 @@ test.describe('Positive Flows', () => {
     await input.fill(TODO_ITEMS[2]);
     await input.press('Enter');
 
-    await expect(page.locator('.todo-list li')).toHaveCount(3);
-    await expect(page.locator('.todo-list li').nth(2)).toHaveText(TODO_ITEMS[2]);
-    await expect(page.locator('.todo-count')).toContainText('3 items left');
+    await expect(page.getByTestId('todo-item')).toHaveCount(3);
+    await expect(page.getByTestId('todo-title').nth(2)).toHaveText(TODO_ITEMS[2]);
+    await expect(page.getByTestId('todo-count')).toContainText('3 items left');
   });
 
   test('TC-06: Adding a fourth todo item', async ({ page }) => {
@@ -67,88 +68,87 @@ test.describe('Positive Flows', () => {
     await input.fill(TODO_ITEMS[3]);
     await input.press('Enter');
 
-    await expect(page.locator('.todo-list li')).toHaveCount(4);
-    for (let i = 0; i < 4; i++) {
-      await expect(page.locator('.todo-list li').nth(i)).toHaveText(TODO_ITEMS[i]);
-    }
-    await expect(page.locator('.todo-count')).toContainText('4 items left');
+    await expect(page.getByTestId('todo-item')).toHaveCount(4);
+    await expect(page.getByTestId('todo-title')).toHaveText(TODO_ITEMS);
+    await expect(page.getByTestId('todo-count')).toContainText('4 items left');
   });
 
   test('TC-07: Marking a single item as completed', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
 
-    await page.locator('.todo-list li').nth(0).locator('.toggle').check();
+    const firstToggle = page.getByTestId('todo-item').nth(0).getByRole('checkbox', { name: 'Toggle Todo' });
+    await firstToggle.check();
 
-    await expect(page.locator('.todo-list li').nth(0)).toHaveClass(/completed/);
-    await expect(page.locator('.todo-count')).toContainText('3 items left');
+    await expect(firstToggle).toBeChecked();
+    await expect(page.getByTestId('todo-count')).toContainText('3 items left');
   });
 
   test('TC-08: Marking all items as completed individually', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
 
     for (let i = 0; i < 4; i++) {
-      await page.locator('.todo-list li').nth(i).locator('.toggle').check();
+      await page.getByTestId('todo-item').nth(i).getByRole('checkbox', { name: 'Toggle Todo' }).check();
     }
 
     for (let i = 0; i < 4; i++) {
-      await expect(page.locator('.todo-list li').nth(i)).toHaveClass(/completed/);
+      await expect(page.getByTestId('todo-item').nth(i).getByRole('checkbox', { name: 'Toggle Todo' })).toBeChecked();
     }
-    await expect(page.locator('.todo-count')).toContainText('0 items left');
+    await expect(page.getByTestId('todo-count')).toContainText('0 items left');
     await expect(page.getByRole('button', { name: 'Clear completed' })).toBeVisible();
   });
 
   test('TC-09: Completed items appear in Completed filter', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
-    await page.locator('.todo-list li').nth(0).locator('.toggle').check();
+    await page.getByTestId('todo-item').nth(0).getByRole('checkbox', { name: 'Toggle Todo' }).check();
 
     await page.getByRole('link', { name: 'Completed' }).click();
 
-    await expect(page.locator('.todo-list li')).toHaveCount(1);
-    await expect(page.locator('.todo-list li').nth(0)).toHaveText(TODO_ITEMS[0]);
+    await expect(page.getByTestId('todo-item')).toHaveCount(1);
+    await expect(page.getByTestId('todo-title').nth(0)).toHaveText(TODO_ITEMS[0]);
   });
 
   test('TC-10: Toggle-all marks every item as completed', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
 
-    await page.locator('.toggle-all').check({ force: true });
+    await page.getByRole('checkbox', { name: 'Mark all as complete' }).check({ force: true });
 
     for (let i = 0; i < 4; i++) {
-      await expect(page.locator('.todo-list li').nth(i)).toHaveClass(/completed/);
+      await expect(page.getByTestId('todo-item').nth(i).getByRole('checkbox', { name: 'Toggle Todo' })).toBeChecked();
     }
-    await expect(page.locator('.todo-count')).toContainText('0 items left');
+    await expect(page.getByTestId('todo-count')).toContainText('0 items left');
   });
 
   test('TC-11: Removing an item via destroy button', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
 
-    await page.locator('.todo-list li').nth(3).hover();
-    await page.locator('.todo-list li').nth(3).locator('.destroy').click();
+    await page.getByTestId('todo-item').nth(3).hover();
+    await page.getByTestId('todo-item').nth(3).getByRole('button', { name: 'Delete' }).click();
 
-    await expect(page.locator('.todo-list li')).toHaveCount(3);
-    await expect(page.locator('.todo-list li')).not.toContainText([TODO_ITEMS[3]]);
+    await expect(page.getByTestId('todo-item')).toHaveCount(3);
+    await expect(page.getByTestId('todo-title')).toHaveText([TODO_ITEMS[0], TODO_ITEMS[1], TODO_ITEMS[2]]);
   });
 
   test('TC-12: Removing a completed item', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
-    await page.locator('.todo-list li').nth(0).locator('.toggle').check();
+    await page.getByTestId('todo-item').nth(0).getByRole('checkbox', { name: 'Toggle Todo' }).check();
 
-    await page.locator('.todo-list li').nth(0).hover();
-    await page.locator('.todo-list li').nth(0).locator('.destroy').click();
+    await page.getByTestId('todo-item').nth(0).hover();
+    await page.getByTestId('todo-item').nth(0).getByRole('button', { name: 'Delete' }).click();
 
-    await expect(page.locator('.todo-list li')).toHaveCount(3);
-    await expect(page.locator('.todo-list li')).not.toContainText([TODO_ITEMS[0]]);
+    await expect(page.getByTestId('todo-item')).toHaveCount(3);
+    await expect(page.getByTestId('todo-title')).toHaveText([TODO_ITEMS[1], TODO_ITEMS[2], TODO_ITEMS[3]]);
   });
 
   test('TC-13: Clear completed removes all completed items', async ({ page }) => {
     await addTodos(page, TODO_ITEMS);
-    await page.locator('.todo-list li').nth(0).locator('.toggle').check();
-    await page.locator('.todo-list li').nth(1).locator('.toggle').check();
+    await page.getByTestId('todo-item').nth(0).getByRole('checkbox', { name: 'Toggle Todo' }).check();
+    await page.getByTestId('todo-item').nth(1).getByRole('checkbox', { name: 'Toggle Todo' }).check();
 
     await page.getByRole('button', { name: 'Clear completed' }).click();
 
-    await expect(page.locator('.todo-list li')).toHaveCount(2);
-    await expect(page.locator('.todo-list li').nth(0)).toHaveText(TODO_ITEMS[2]);
-    await expect(page.locator('.todo-list li').nth(1)).toHaveText(TODO_ITEMS[3]);
+    await expect(page.getByTestId('todo-item')).toHaveCount(2);
+    await expect(page.getByTestId('todo-title').nth(0)).toHaveText(TODO_ITEMS[2]);
+    await expect(page.getByTestId('todo-title').nth(1)).toHaveText(TODO_ITEMS[3]);
   });
 });
 
