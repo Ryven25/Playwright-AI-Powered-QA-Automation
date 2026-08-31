@@ -4,7 +4,8 @@ name: Test Generation
 # CURSOR_API_KEY — create at https://cursor.com/dashboard → API Keys → Add
 # ATLASSIAN_API_TOKEN, GITHUB_TOKEN, DIDAXIS_* — repo/environment secrets
 
-on:  schedule:
+on:
+  schedule:
     # Weekdays at 06:00 UTC (Mon–Fri)
     - cron: '0 6 * * 1-5'
   workflow_dispatch:
