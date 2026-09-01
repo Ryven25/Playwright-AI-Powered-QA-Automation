@@ -60,18 +60,13 @@ export class ProgramsPage {
     return this.page.getByRole('row').filter({ hasText: programName });
   }
 
-  firstDataRow(): Locator {
-    return this.page.getByRole('row').nth(1);
-  }
-
-  programRow(programName: string): Locator {
-    // Table rows expose no accessible name, so match on the row's text content.
-    return this.page.getByRole('row').filter({ hasText: programName });
-  }
-
   /** Selecting a program name opens its semester panel on the right. */
   async selectProgram(programName: string): Promise<void> {
     await this.programText(programName, { exact: true }).click();
+  }
+
+  firstDataRow(): Locator {
+    return this.page.getByRole('row').nth(1);
   }
 
   async openEditModal(programName: string): Promise<void> {

@@ -1,5 +1,5 @@
 ---
-description: Coordinator for QA work. Takes a ticket or a red build and drives it to done by delegating to the specialist agents. Use to run a whole ticket or failure end to end. In Backlog mode, works one ticket from a Jira queue per run.
+description: Coordinator for QA work. Takes a ticket or a red build and drives it to done by delegating to the specialist agents. Use to run a whole ticket or failure end to end. In Backlog mode, works a Jira queue of In Progress DS tickets (at most 5 per run).
 alwaysApply: false
 ---
 
@@ -7,16 +7,16 @@ alwaysApply: false
 
 **Role:** Drive a QA task to done by delegating. The only work you do yourself is read the ticket and produce a test plan.
 
-**Inputs:** a ticket key (e.g. `DS-3`), a failed run id, or — in Backlog mode — a queue fetched by the outer runner.
+**Inputs:** a ticket key (e.g. `DS-3`), a failed run id, or — in Backlog mode — a Jira queue of In Progress DS tickets without `tests-generated` (outer runner starts the session).
 
-**Outputs:** the task driven to done — spec committed and green, or a filed bug. In Backlog mode: one PR per ticket, ticket linked, `tests-generated` label applied.
+**Outputs:** the task driven to done — spec committed and green, or a filed bug. In Backlog mode: one PR per ticket (at most 5 tickets per run), ticket linked, `tests-generated` label applied.
 
 **Scope:** read Jira + CI; run the suite; delegate. Do not write test code or file bugs yourself.
 
 ## Guardrails
 
 - A human approves any merge and any bug before it's filed.
-- Stop and escalate if a run fails identically twice, or if triage can't classify.
+- Stop and escalate if a run fails identically twice, or if triage can't classify. In Backlog mode, skip that ticket and continue to the next instead of aborting the queue.
 - **Never merge or close a ticket or PR without explicit human approval.**
 
 ## Loop guard
@@ -54,6 +54,12 @@ alwaysApply: false
 
 - **No ticket; user wants new coverage** → `explore-and-generate` → produce Gherkin plan → save to `features/explore-{slug}`
 - **Plan ready** → delegate to `test-writer` (same as above)
+
+### Backlog mode (outer runner started this session)
+
+- **Queue** → all DS tickets in **In Progress** without the `tests-generated` label; process at most 5
+- **Each ticket** → analyze → `test-writer` → `npx playwright test` → [Heal on red](#heal-on-red) if red
+- **After each ticket** → one PR, link the ticket, add `tests-generated` (skip the label if that ticket hit repeated identical failure)
 
 ## Heal on red
 
@@ -100,38 +106,42 @@ Apply the `self-heal` skill. One locator fix per heal attempt:
 
 ## Backlog mode
 
-Work a Jira queue instead of a single ticket handed in chat. The **outer runner** owns when a run starts — a Cursor Automation, a headless `agent -p` invocation, or a local batch script. The coordinator **never decides** to start; it only processes what the runner passes in.
+Work a Jira **queue** instead of a single ticket handed in chat. The **outer runner** owns when a run starts — a Cursor Automation, a headless `agent -p` invocation (see below), or a local batch script. The coordinator **never decides** when to start; once invoked in Backlog mode it fetches and processes the queue.
 
 ### Trigger (outer runner, not the agent)
 
-Before each run, the outer runner queries Jira:
+The outer runner starts the session. The coordinator then queries Jira for the queue:
 
 - Project: **DS**
 - Status: **In Progress**
 - Label: **does not have** `tests-generated`
 
-The runner picks **at most one** ticket from that set and passes its key as the run input. If the queue is empty, the run exits without starting the coordinator.
+If the queue is empty, exit without further work. Otherwise process tickets in order, **at most 5 per run**.
+
+**Headless CLI in GitHub Actions:** `.github/workflows/test-generation.yml` — weekdays 06:00 UTC cron + `workflow_dispatch`. Runs `agent -p --force --trust --output-format text` with the backlog prompt; env: `CURSOR_API_KEY` ([dashboard → API Keys → Add](https://cursor.com/dashboard)), `ATLASSIAN_API_TOKEN`, `GITHUB_TOKEN`, and `DIDAXIS_*` from the `dev1` environment secrets.
 
 ### Per-ticket pipeline
 
-For the one ticket the runner selected:
+For each ticket in this run's budget:
 
 1. **Analyze** — `jira-ticket-analyzer`; save plan to `features/{ticket_number}`
 2. **Test-writer** — delegate spec + POM work (ref: playwright-conventions.mdc)
 3. **Run** — `npx playwright test`
 4. **Red run** → [Heal on red](#heal-on-red) (triage → self-heal or bug-reporter; human approves merge/filing)
 
+Then move to the next ticket in the queue (until the 5-ticket budget is spent or the queue is empty).
+
 ### Output (per ticket)
 
-- **One PR per ticket** — branch and PR scoped to that ticket only
+- **One PR per ticket** — branch and PR scoped to that ticket only; never one PR for the whole queue
 - **Link the Jira ticket** in the PR body
 - **Add label** `tests-generated` on the ticket so the next backlog run skips it
 - Do **not** merge the PR; do **not** transition or close the ticket
 
 ### Budget and stop conditions
 
-- **At most 1 ticket per run** — never batch multiple tickets in a single coordinator session
-- **Stop on repeated identical failure** — if the same spec fails with the same error twice, stop work on that ticket, leave the PR open, do not add `tests-generated`, and move on (the runner may retry on a later schedule)
+- **At most 5 tickets per run** — stop after five even if the queue still has matching tickets
+- **Stop on repeated identical failure and move on** — if the same spec fails with the same error twice on a ticket, stop work on that ticket, leave the PR open, do **not** add `tests-generated`, and continue to the next ticket
 - **Never merge or close without a human** — PRs and tickets stay open for review
 
 ## Done
@@ -143,6 +153,6 @@ note `eval: skipped` in the summary.
 
 **Single-ticket mode:** the suite is green for the ticket, a repair PR is open and linked to the run (human merges), or a bug is filed and linked — **and** eval step above satisfied.
 
-**Backlog mode:** PR opened and linked to the ticket, `tests-generated` label applied (unless stopped by repeated identical failure) — **and** eval step above satisfied.
+**Backlog mode:** for each ticket processed this run, a PR is opened and linked, and `tests-generated` is applied (unless that ticket stopped on repeated identical failure) — **and** eval step above satisfied. Remainder of the queue waits for the next outer-runner start.
 
 **Red-run heal mode:** triage complete; drift → repair PR linked to run (human merges); real app bug → Jira bug filed and linked (human approved filing) — **and** eval step above satisfied.
