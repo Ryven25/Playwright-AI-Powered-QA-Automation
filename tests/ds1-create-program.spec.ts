@@ -142,11 +142,9 @@ test.describe('DS-1: Create Program - Max Length (DS-134)', () => {
     await programs.openNewProgramModal();
     await programs.newProgram.fill(overMax, 'Over max length test');
 
-    if (await programs.newProgram.createButton.isDisabled()) {
-      await expect(programs.programRow(overMax)).toHaveCount(0);
-      return;
-    }
-
+    // Do not snapshot isDisabled() right after fill — React may still be enabling
+    // Create, which made this test pass in CI and trip test.fail() as unexpected.
+    await expect(programs.newProgram.createButton).toBeEnabled();
     await programs.newProgram.submit();
     await expect(programs.newProgram.nameLengthError).toBeVisible();
     await expect(programs.newProgram.dialog).toBeVisible();
