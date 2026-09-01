@@ -119,9 +119,10 @@ test.describe('DS-1: Create Program - Edge Cases', () => {
 
   test('TC-13: Program name at exactly 100 characters is accepted', { tag: '@regression' }, async ({ page }) => {
     const programs = new ProgramsPage(page);
-    const name = 'A'.repeat(100);
+    const suffix = String(Date.now());
+    const name = 'A'.repeat(100 - suffix.length) + suffix;
     await createProgramAndTrack(programs, name, 'Max length boundary');
-    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.programRow(name)).toBeVisible();
   });
 });
 
@@ -135,19 +136,20 @@ test.describe('DS-1: Create Program - Max Length (DS-134)', () => {
   test('TC-14: Reject program name over 100 characters', { tag: '@regression' }, async ({ page }) => {
     test.fail(true, 'DS-134: app accepts program names over 100 characters');
     const programs = new ProgramsPage(page);
-    const overMax = 'B'.repeat(101);
+    const suffix = String(Date.now());
+    const overMax = 'B'.repeat(101 - suffix.length) + suffix;
 
     await programs.openNewProgramModal();
     await programs.newProgram.fill(overMax, 'Over max length test');
 
     if (await programs.newProgram.createButton.isDisabled()) {
-      await expect(programs.programText(overMax)).toBeHidden();
+      await expect(programs.programRow(overMax)).toHaveCount(0);
       return;
     }
 
     await programs.newProgram.submit();
     await expect(programs.newProgram.nameLengthError).toBeVisible();
     await expect(programs.newProgram.dialog).toBeVisible();
-    await expect(programs.programText(overMax)).toBeHidden();
+    await expect(programs.programRow(overMax)).toHaveCount(0);
   });
 });
