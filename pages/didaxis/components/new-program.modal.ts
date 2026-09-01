@@ -8,6 +8,8 @@ export class NewProgramModal {
   readonly cancelButton: Locator;
   /** Visible when create is rejected because the name is already taken (AC3). */
   readonly duplicateNameError: Locator;
+  /** Visible when name exceeds max length (100 chars — DS-134). */
+  readonly nameLengthError: Locator;
 
   constructor(page: Page) {
     this.dialog = page.getByRole('dialog', { name: 'New Program' });
@@ -20,6 +22,9 @@ export class NewProgramModal {
     this.duplicateNameError = this.dialog
       .getByRole('alert')
       .or(this.dialog.getByText(/already exists|duplicate (name|program)|name.*(taken|in use)/i));
+    this.nameLengthError = this.dialog
+      .getByRole('alert')
+      .or(this.dialog.getByText(/100 characters|too long|max(imum)? length|character limit/i));
   }
 
   async fill(name: string, description?: string): Promise<void> {

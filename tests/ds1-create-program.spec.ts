@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { createProgramAndTrack } from '../fixtures/create-program.helper';
 import { ProgramsPage } from '../pages/didaxis/programs.page';
+import { trackProgram } from '../support/program-tracker';
 
 const programName = () => `Test Program ${Date.now()}`;
 
@@ -115,5 +116,47 @@ test.describe('DS-1: Create Program - Edge Cases', () => {
     const name = `<script>alert("xss")</script> ${Date.now()}`;
     await createProgramAndTrack(programs, name, 'XSS test');
     await expect(programs.programText(name)).toBeVisible();
+  });
+
+  test('TC-13: Program name at exactly 100 characters is accepted', { tag: '@regression' }, async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    const suffix = String(Date.now());
+    const name = 'A'.repeat(100 - suffix.length) + suffix;
+    await createProgramAndTrack(programs, name, 'Max length boundary');
+    await expect(programs.programRow(name)).toBeVisible();
+  });
+});
+
+test.describe('DS-1: Create Program - Max Length (DS-134)', () => {
+  test.beforeEach(async ({ page }) => {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+  });
+
+  // Known product bug — https://legionqaschool.atlassian.net/browse/DS-134
+  test('TC-14: Reject program name over 100 characters', { tag: '@regression' }, async ({ page }) => {
+    test.fail(true, 'DS-134: app accepts program names over 100 characters');
+    const programs = new ProgramsPage(page);
+    const suffix = String(Date.now());
+    const overMax = 'B'.repeat(101 - suffix.length) + suffix;
+
+    await programs.openNewProgramModal();
+    await programs.newProgram.fill(overMax, 'DS-134 over-max name');
+
+    const created = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/api/programs') && resp.request().method() === 'POST'
+    );
+    await programs.newProgram.submit();
+    const response = await created;
+    if (response.status() === 201) {
+      const body = await response.json();
+      const id = body?.data?.id || body?.id;
+      if (id) trackProgram(id);
+    }
+
+    expect(response.status(), 'over-max name must not be created').not.toBe(201);
+    await expect(programs.newProgram.dialog).toBeVisible();
+    await expect(programs.programRow(overMax)).toHaveCount(0);
   });
 });

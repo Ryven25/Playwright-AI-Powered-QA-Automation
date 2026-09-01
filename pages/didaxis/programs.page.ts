@@ -49,6 +49,11 @@ export class ProgramsPage {
     return this.page.getByText(text, options);
   }
 
+  /** Table row containing the given program name (avoids strict-mode collisions on shared envs). */
+  programRow(programName: string): Locator {
+    return this.page.getByRole('row').filter({ hasText: programName });
+  }
+
   firstDataRow(): Locator {
     return this.page.getByRole('row').nth(1);
   }
