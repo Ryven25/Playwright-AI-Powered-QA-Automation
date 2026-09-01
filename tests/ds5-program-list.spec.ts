@@ -7,24 +7,30 @@ import { deleteProgramsByIds, getAllPrograms } from '../support/delete-program';
 
 /** Wipe all programs via API so the Programs page can show the empty state (AC2). */
 async function clearAllProgramsViaApi(): Promise<void> {
-  const existing = await getAllPrograms();
-  if (existing.length === 0) return;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const existing = await getAllPrograms();
+    if (existing.length === 0) return;
 
-  const results = await deleteProgramsByIds(existing.map((program) => program.id));
-  const failed = results.filter((result) => !result.ok);
-  if (failed.length > 0) {
-    throw new Error(
-      `Failed to delete ${failed.length} program(s) for empty-state setup: ${failed
-        .map((result) => `${result.id} (${result.status})`)
-        .join(', ')}`
-    );
-  }
+    const results = await deleteProgramsByIds(existing.map((program) => program.id));
+    const failed = results.filter((result) => !result.ok);
+    if (failed.length > 0) {
+      throw new Error(
+        `Failed to delete ${failed.length} program(s) for empty-state setup: ${failed
+          .map((result) => `${result.id} (${result.status})`)
+          .join(', ')}`
+      );
+    }
 
-  const remaining = await getAllPrograms();
-  if (remaining.length > 0) {
-    throw new Error(
-      `Empty-state setup incomplete: ${remaining.length} program(s) still present after delete`
-    );
+    const remaining = await getAllPrograms();
+    if (remaining.length === 0) return;
+
+    if (attempt === 3) {
+      throw new Error(
+        `Empty-state setup incomplete: ${remaining.length} program(s) still present after delete`
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, attempt * 500));
   }
 }
 

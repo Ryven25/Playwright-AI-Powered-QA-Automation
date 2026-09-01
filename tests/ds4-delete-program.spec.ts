@@ -37,9 +37,14 @@ test.describe('DS-4: Delete Program - Positive Flows', () => {
     await createProgramAndTrack(programs, name);
 
     page.once('dialog', (dialog) => dialog.accept());
+    const deleted = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/api/programs/') && resp.request().method() === 'DELETE'
+    );
 
     await programs.clickDelete(name);
-    await expect(programs.programText(name)).toBeHidden();
+    await deleted;
+    await expect(programs.programRow(name)).toHaveCount(0);
   });
 
   test('TC-09: Deleted program does not reappear after page refresh', { tag: '@e2e' }, async ({ page }) => {
