@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { createProgramAndTrack } from '../fixtures/create-program.helper';
 import { ProgramsPage } from '../pages/didaxis/programs.page';
+import { trackProgram } from '../support/program-tracker';
 
 const programName = () => `Test Program ${Date.now()}`;
 
@@ -140,13 +141,21 @@ test.describe('DS-1: Create Program - Max Length (DS-134)', () => {
     const overMax = 'B'.repeat(101 - suffix.length) + suffix;
 
     await programs.openNewProgramModal();
-    await programs.newProgram.fill(overMax, 'Over max length test');
+    await programs.newProgram.fill(overMax, 'DS-134 over-max name');
 
-    // Do not snapshot isDisabled() right after fill — React may still be enabling
-    // Create, which made this test pass in CI and trip test.fail() as unexpected.
-    await expect(programs.newProgram.createButton).toBeEnabled();
+    const created = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/api/programs') && resp.request().method() === 'POST'
+    );
     await programs.newProgram.submit();
-    await expect(programs.newProgram.nameLengthError).toBeVisible();
+    const response = await created;
+    if (response.status() === 201) {
+      const body = await response.json();
+      const id = body?.data?.id || body?.id;
+      if (id) trackProgram(id);
+    }
+
+    expect(response.status(), 'over-max name must not be created').not.toBe(201);
     await expect(programs.newProgram.dialog).toBeVisible();
     await expect(programs.programRow(overMax)).toHaveCount(0);
   });
