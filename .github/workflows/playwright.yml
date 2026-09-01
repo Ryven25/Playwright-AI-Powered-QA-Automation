@@ -1,8 +1,15 @@
 name: Playwright Tests
 
+# Shared Didaxis env (dev1): only one suite at a time, and do not double-fire
+# on every PR commit (push + pull_request used to race ds5 empty-state wipe).
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: playwright-dev1
+  cancel-in-progress: false
 
 jobs:
   test:
