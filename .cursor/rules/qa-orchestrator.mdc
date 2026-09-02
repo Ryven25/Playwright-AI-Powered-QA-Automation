@@ -118,7 +118,7 @@ The outer runner starts the session. The coordinator then queries Jira for the q
 
 If the queue is empty, exit without further work. Otherwise process tickets in order, **at most 5 per run**.
 
-**Headless CLI in GitHub Actions:** `.github/workflows/test-generation.yml` — weekdays 06:00 UTC cron + `workflow_dispatch`. Runs `agent -p --force --trust --output-format text` with the backlog prompt; env: `CURSOR_API_KEY` ([dashboard → API Keys → Add](https://cursor.com/dashboard)), `ATLASSIAN_API_TOKEN`, `GITHUB_TOKEN`, and `DIDAXIS_*` from the `dev1` environment secrets.
+**Headless CLI in GitHub Actions:** `.github/workflows/test-generation.yml` — weekdays 06:00 UTC cron + `workflow_dispatch`. Runs `agent -p --force --trust --output-format text` with the backlog prompt; env: `CURSOR_API_KEY` ([dashboard → API Keys → Add](https://cursor.com/dashboard)), `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_BASE_URL`, `GITHUB_TOKEN` (workflow token), and `DIDAXIS_*` from the `dev1` environment secrets.
 
 ### Per-ticket pipeline
 

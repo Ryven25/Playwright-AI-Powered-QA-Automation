@@ -2,7 +2,8 @@ name: Test Generation
 
 # Secrets (environment: dev1)
 # CURSOR_API_KEY — create at https://cursor.com/dashboard → API Keys → Add
-# ATLASSIAN_API_TOKEN, GITHUB_TOKEN, DIDAXIS_* — repo/environment secrets
+# ATLASSIAN_EMAIL, ATLASSIAN_API_TOKEN, ATLASSIAN_BASE_URL, DIDAXIS_* — environment secrets
+# GITHUB_TOKEN — uses the workflow token (github.token); no secret required
 
 on:
   schedule:
@@ -27,6 +28,10 @@ jobs:
       DIDAXIS_EMAIL: ${{ secrets.DIDAXIS_EMAIL }}
       DIDAXIS_PASSWORD: ${{ secrets.DIDAXIS_PASSWORD }}
       DIDAXIS_API_TOKEN: ${{ secrets.DIDAXIS_API_TOKEN }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_BASE_URL: ${{ secrets.ATLASSIAN_BASE_URL }}
+      GITHUB_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout repository
@@ -53,8 +58,6 @@ jobs:
       - name: Run backlog test generation
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-          ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           agent -p --force --trust --output-format text "$(cat <<'EOF'
           You are the QA orchestrator in Backlog mode. Follow @.cursor/rules/qa-orchestrator.mdc.
