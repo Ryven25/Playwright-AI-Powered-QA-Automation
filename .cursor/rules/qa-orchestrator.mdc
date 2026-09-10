@@ -18,12 +18,14 @@ alwaysApply: false
 - A human approves any merge and any bug before it's filed.
 - Stop and escalate if a run fails identically twice, or if triage can't classify. In Backlog mode, skip that ticket and continue to the next instead of aborting the queue.
 - **Never merge or close a ticket or PR without explicit human approval.**
+- **Red runs always go through [Heal on red](#heal-on-red)** — triage first; never patch on instinct.
+- **Refusals apply** — see [Refusals (hard stops)](playwright-conventions.mdc#refusals-hard-stops) in playwright-conventions.mdc; refuse to weaken assertions, heal a real bug, or bypass triage.
 
 ## Loop guard
 
 - At most 3 delegations per task (excluding heal retries within a single red run).
-- Never re-run an identical failing spec more than twice.
-- **At most 5 heals per red run** — see [Heal on red](#heal-on-red).
+- Never re-run an identical failing spec more than twice without a new heal attempt or re-triage.
+- **At most 5 heals per red run** — see [Heal on red → Budget & stop](#budget--stop).
 
 ## Tools
 
@@ -37,7 +39,7 @@ alwaysApply: false
 - `jira-ticket-analyzer` — the coordinator owns "analyze" (ticket with AC)
 - `explore-and-generate` — ticket-less coverage discovery; coordinator owns exploration and Gherkin plan output
 - `ci-failure-triage` — used by the `triage` agent to classify red runs
-- `self-heal` — locator drift repair after triage classifies **test issue (drift)**; POM-only, assertions unchanged
+- `self-heal` — drift path only: re-discover locator → patch POM → prove green → repair PR; assertions unchanged; never for real bugs
 - `jira-bug-reporter` — used by the `bug-reporter` agent when triage classifies **real app bug**
 - `eval-report` — **mandatory before Done** when heal/generation occurred or report is stale; refreshes `eval-report.md`
 
@@ -48,7 +50,7 @@ alwaysApply: false
 - **Ticket given** → analyze → produce test plan → save to `features/{ticket_number}`
 - **Plan ready** → delegate to `test-writer` (ref: playwright-conventions.mdc)
 - **Spec returned** → run: `npx playwright test`
-- **Run is red** → [Heal on red](#heal-on-red)
+- **Run is red** → [Heal on red](#heal-on-red): triage → drift (heal → prove → PR) | bug (file) | stop
 
 ### Ticket-less coverage expansion
 
@@ -63,7 +65,15 @@ alwaysApply: false
 
 ## Heal on red
 
-When a run is red — CI failure, local `npx playwright test`, or a spec returned red from test-writer — **always triage first**. Never heal or patch on instinct.
+When a run is red — CI failure, local `npx playwright test`, or a spec returned red from test-writer — **always triage first**. Never heal, patch, or file on instinct.
+
+```
+red run
+  └─► triage (ci-failure-triage)
+        ├─► drift      → self-heal → prove green → repair PR
+        ├─► real bug   → bug-reporter → file Jira (human approves)
+        └─► ambiguous  → STOP (escalate; do not heal or file)
+```
 
 ### 1. Triage (classify)
 
@@ -72,37 +82,67 @@ Delegate to `triage` (skill: `ci-failure-triage`). Require a structured diagnosi
 - Root cause, failing test, trace path, affected file
 - Classification: **test issue (drift)** | **real app bug** | ambiguous
 
-If triage **cannot classify** → stop and escalate to a human. Do not heal or file.
+If triage **cannot classify** → **stop** and escalate to a human. Do not heal or file.
 
 ### 2. Route by classification
 
-| Classification | Action |
+| Classification | Action | Never |
+| --- | --- | --- |
+| **Test issue (drift)** | [Drift path](#drift-path-heal--prove--pr) — apply `self-heal` | Heal without drift classification; heal a real bug |
+| **Real app bug** | [Bug path](#bug-path-file) — delegate to `bug-reporter` | Heal locators or specs to mask product behavior |
+| **Ambiguous** | **Stop** and escalate | Heal or file until classified |
+
+### Drift path (heal → prove → PR)
+
+Apply the `self-heal` skill. **One locator fix per heal attempt** (POM only):
+
+1. **Heal** — re-discover via Playwright MCP `browser_snapshot` on the live app (`DIDAXIS_URL`); patch `pages/` with minimal role-based diff. **Never** edit `tests/**/*.spec.ts`.
+2. **Prove** — `npx playwright test <failing-spec>` until green with **assertions unchanged**.
+3. **PR** — branch `heal/<short-description>`; body includes triage classification, locator old→new diff, re-discovery evidence, failed run id/URL, green re-run result. **Do not merge** — human approves.
+
+If still red after one heal attempt, consume one heal from [budget](#budget--stop) and repeat from triage/re-discovery on the **next** failure (not the same locator blindly).
+
+### Bug path (file)
+
+Delegate to `bug-reporter` (skill: `jira-bug-reporter`):
+
+1. File a Jira bug with root cause, steps, expected/actual, trace evidence.
+2. Link the bug to the originating story and the failed run id/URL.
+3. **Stop healing** — do not patch POM or spec to get green.
+
+A human approves filing before the ticket lands.
+
+### Never heal assertions
+
+**Hard refusal** — applies to every heal attempt:
+
+- No deleting, commenting out, softening, or skipping `expect()` to pass.
+- No editing assertions in specs to match broken product behavior.
+- `.cursor/hooks/guard-test-assertions` enforces this on test edits.
+- If green requires touching assertions → **stop and escalate** (fake heal; not drift).
+
+Also refuse: CSS/XPath downgrades, `waitForTimeout`, hardcoded credentials, TypeScript `any` — see playwright-conventions Refusals.
+
+### Budget & stop
+
+| Rule | Limit / action |
 | --- | --- |
-| **Real app bug** | Delegate to `bug-reporter` (skill: `jira-bug-reporter`). File and link the bug to the story/run. **Never heal a bug.** |
-| **Test issue (drift)** | Apply `self-heal` — see below. |
-| **Ambiguous** | Stop and escalate. Do not heal or file. |
+| Heal budget | **At most 5 heals per red run** — each heal = one locator fix + prove attempt; counts even if re-run stays red |
+| Identical failure | Same spec, same error **twice** with no progress → **stop**; leave repair PR open; report what was tried; escalate |
+| Heal without green | Cannot prove green without assertion changes → **stop** (escalate) |
+| Locator persists | Same locator error after re-discovery → **stop** (escalate or re-triage) |
+| Regression | New failure suggests product regression → **stop**; re-triage |
+| Merge / file | Human approves every repair PR merge and every bug filing |
 
-### 3. Self-heal (drift only)
+In **Backlog mode**, a ticket that hits identical failure twice: skip `tests-generated`, leave PR open, continue to next ticket.
 
-Apply the `self-heal` skill. One locator fix per heal attempt:
+### Heal-on-red outputs
 
-1. **Re-discover** — use browser/Playwright MCP against the live app (`DIDAXIS_URL`); `browser_snapshot` a11y tree to find the current role + accessible name (never guess from screenshots).
-2. **Patch the POM** — minimal diff in `pages/` only; never edit `tests/**/*.spec.ts` or weaken assertions.
-3. **Re-run** — `npx playwright test <failing-spec>` to prove green with **assertions unchanged**.
-4. **Open a repair PR** — branch `heal/<short-description>`, link the failed run id/URL, include locator diff and triage classification. **Do not merge** — a human approves every repair PR.
-
-**Hard stops for heal:**
-
-- **Never heal an assertion** — no deleting, commenting out, or softening `expect()`. The `.cursor/hooks/guard-test-assertions` hook enforces this on test edits; if green requires touching assertions, **stop and escalate**.
-- **Never heal a real app bug** — triage must say drift; re-triage if behavior is wrong, not the selector.
-- **Stop and escalate** if a heal cannot prove green without assertion changes, the same locator error persists after re-discovery, or a new failure indicates product regression.
-- **Never merge a repair PR** without explicit human approval.
-
-### 4. Heal budget and stop conditions
-
-- **At most 5 heals per red run** — each heal fixes one locator; count toward the budget even if re-run stays red.
-- After 5 heals or repeated identical failure on the same spec → stop, leave the repair PR open (if any), report what was tried, and escalate.
-- A human approves merge and any bug filing before either lands.
+| Outcome | Deliverable |
+| --- | --- |
+| Drift healed | Repair PR linked to failed run; green re-run evidence; assertions unchanged |
+| Real bug | Jira bug key linked to story/run; no heal PR |
+| Stopped | Escalation note: classification, attempts consumed, open PR/bug links |
 
 ## Backlog mode
 
@@ -127,7 +167,7 @@ For each ticket in this run's budget:
 1. **Analyze** — `jira-ticket-analyzer`; save plan to `features/{ticket_number}`
 2. **Test-writer** — delegate spec + POM work (ref: playwright-conventions.mdc)
 3. **Run** — `npx playwright test`
-4. **Red run** → [Heal on red](#heal-on-red) (triage → self-heal or bug-reporter; human approves merge/filing)
+4. **Red run** → [Heal on red](#heal-on-red): triage → drift (heal → prove → PR) or bug (file) or stop
 
 Then move to the next ticket in the queue (until the 5-ticket budget is spent or the queue is empty).
 
@@ -155,4 +195,4 @@ note `eval: skipped` in the summary.
 
 **Backlog mode:** for each ticket processed this run, a PR is opened and linked, and `tests-generated` is applied (unless that ticket stopped on repeated identical failure) — **and** eval step above satisfied. Remainder of the queue waits for the next outer-runner start.
 
-**Red-run heal mode:** triage complete; drift → repair PR linked to run (human merges); real app bug → Jira bug filed and linked (human approved filing) — **and** eval step above satisfied.
+**Red-run heal mode:** [Heal on red](#heal-on-red) complete — drift → repair PR + green proof (human merges); real app bug → Jira filed and linked (human approves filing); stopped → escalation note with attempts and links — **and** eval step above satisfied.

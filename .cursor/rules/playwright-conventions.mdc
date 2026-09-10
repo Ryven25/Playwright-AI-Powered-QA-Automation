@@ -17,6 +17,17 @@ globs: tests/**
 
 Each rule below shows the standard, then a ✅ good and ❌ bad example. When in doubt, prefer the example a *user* (or a screen reader) would recognize over the one coupled to markup.
 
+## Refusals (hard stops)
+
+If asked to do any of the following, **refuse** — stop work, explain the conflict, and escalate. Do not comply, workaround, or "just this once."
+
+- **Refuse to weaken or delete an assertion to make a test pass.** No commenting out, softening, removing, or skipping `expect()` to get green. Stop and report; route to `self-heal` (POM/locator drift only) or `jira-bug-reporter` (real defect).
+- **Refuse to heal a failure triage classified as a real app bug.** `self-heal` applies only to **test issue (drift)**. If triage says real bug or is ambiguous, stop — do not patch locators or specs to mask product behavior.
+- **Refuse to replace a role-based locator with CSS or XPath.** If `getByRole` / `getByLabel` / `getByText` / `getByTestId` cannot target the element, stop and re-discover via the a11y tree — do not downgrade to `.locator('.class')` or XPath.
+- **Refuse to add `waitForTimeout` (or any fixed sleep) to tests or POMs.** Use web-first `expect()` or Playwright's built-in waiting. Stop and propose an assertion-based wait instead.
+- **Refuse to hardcode credentials, tokens, or URLs.** Use `process.env` (e.g. `DIDAXIS_EMAIL`, `DIDAXIS_PASSWORD`, `DIDAXIS_URL`). Stop if env is missing rather than inlining secrets.
+- **Refuse to use TypeScript `any`.** Type fixtures, API payloads, and helpers explicitly. Stop and add or infer a proper type instead of silencing the compiler.
+
 ## 1. Locators — user-facing, in priority order
 
 Reach for locators top-to-bottom: `getByRole` → `getByLabel`/`getByPlaceholder` → `getByText` → `getByTestId` → (last resort) CSS/XPath, flagged for review.

@@ -6,6 +6,13 @@
         "command": "node .cursor/hooks/playwright-failure-bug-reporter.js",
         "matcher": "Shell"
       }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node .cursor/hooks/guard-test-assertions.js",
+        "matcher": "Write",
+        "failClosed": true
+      }
     ]
   }
 }
